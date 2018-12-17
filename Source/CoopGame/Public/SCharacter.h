@@ -8,7 +8,6 @@
 
 class UCameraComponent;
 class USpringArmComponent;
-//class UStaticMeshComponent;
 
 UCLASS()
 class COOPGAME_API ASCharacter : public ACharacter
@@ -32,9 +31,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USpringArmComponent* SpringArmComp;
 
-	//UPROPERTY(EditDefaultsOnly, Category = "Components")
-	//UStaticMeshComponent* StaticMeshComp;
-
 	void BeginCrouch();
 	void EndCrouch();
 
@@ -45,6 +41,6 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	
+	virtual FVector GetPawnViewLocation() const override;
 	
 };
