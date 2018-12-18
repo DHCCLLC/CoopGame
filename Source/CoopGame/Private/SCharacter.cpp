@@ -88,4 +88,3 @@ void ASCharacter::EndCrouch()
 {
 	UnCrouch();
 }
-
