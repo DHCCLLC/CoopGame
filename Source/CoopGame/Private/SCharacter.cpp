@@ -9,6 +9,7 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "SWeapon.h"
 #include "Engine/World.h"
+#include "SWeapon.h"
 
 
 // Sets default values
@@ -32,7 +33,10 @@ ASCharacter::ASCharacter()
 	ZoomedFOV = 65.0f;
 	ZoomInterpSpeed = 20.0f;
 
-	WeaponAttachSocketName = "WeaponSocket";
+	WeaponAttachSocketName = "WeaponSocket";	
+
+	Ammunition.Add(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 30.0f);
+	Ammunition.Add(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f);
 }
 
 // Called when the game starts or when spawned
@@ -85,7 +89,8 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Zoom", EInputEvent::IE_Pressed, this, &ASCharacter::BeginZoom);
 	PlayerInputComponent->BindAction("Zoom", EInputEvent::IE_Released, this, &ASCharacter::EndZoom);
 
-	PlayerInputComponent->BindAction("fire", EInputEvent::IE_Pressed, this, &ASCharacter::Fire);
+	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Pressed, this, &ASCharacter::StartFire);
+	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Released, this, &ASCharacter::StopFire);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const
@@ -128,10 +133,36 @@ void ASCharacter::EndZoom()
 	bWantsToZoom = false;
 }
 
-void ASCharacter::Fire()
+void ASCharacter::StartFire()
+{
+	//if (Ammunition[CurrentWeapon->GetAmmunitionType()] <= 0)
+	//	return;
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StartFire();
+	}
+}
+
+void ASCharacter::StopFire()
 {
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->Fire();
+		CurrentWeapon->StopFire();
 	}
+}
+
+void ASCharacter::ConsumeAmmunition(float AmmunitionConsumed)
+{
+	Ammunition[CurrentWeapon->GetAmmunitionType()] -= AmmunitionConsumed;
+}
+
+float ASCharacter::GetRemainingAmmunition()
+{
+	return Ammunition[CurrentWeapon->GetAmmunitionType()];
+}
+
+bool ASCharacter::HasAmmunition()
+{ 
+	return (Ammunition[CurrentWeapon->GetAmmunitionType()] > 0); 
 }

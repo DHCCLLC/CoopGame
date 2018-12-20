@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SEnums.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "SCharacter.generated.h"
@@ -57,7 +58,11 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
 	FName WeaponAttachSocketName;
 
-	void Fire();
+	void StartFire();
+	void StopFire();	
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TMap<EWEAPONAMMUNITIONTYPE, float> Ammunition;
 
 public:	
 	// Called every frame
@@ -68,4 +73,11 @@ public:
 
 	virtual FVector GetPawnViewLocation() const override;
 	
+	//UFUNCTION(BlueprintCallable, Category = "Player")
+	void ConsumeAmmunition(float AmmunitionConsumed);
+
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	float GetRemainingAmmunition();
+
+	bool HasAmmunition();
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "SEnums.h"
 #include "SWeapon.generated.h"
 
 class USkeletalMeshComponent;
@@ -20,6 +21,8 @@ public:
 	ASWeapon();
 
 protected:
+
+	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComp;
@@ -50,10 +53,28 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<UCameraShake> FireCamShake;
 
-public:	
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float BaseDamage;
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-		virtual void Fire();
+	virtual void Fire();
+
+	FTimerHandle TimerHandle_TimeBetweenShots;
+
+	float LastFireTime;
+
+	//RPM - bullets fired per minute
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float RateOfFire;
+
+	float TimeBetweenShots;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	EWEAPONAMMUNITIONTYPE AmmunitionType;
+public:		
 	
-	
+	void StartFire();
+
+	void StopFire();
+
+	EWEAPONAMMUNITIONTYPE GetAmmunitionType() { return AmmunitionType; }
 };
