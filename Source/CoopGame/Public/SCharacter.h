@@ -10,6 +10,7 @@
 class UCameraComponent;
 class USpringArmComponent;
 class ASWeapon;
+class USHealthComponent;
 
 UCLASS()
 class COOPGAME_API ASCharacter : public ACharacter
@@ -63,6 +64,15 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TMap<EWEAPONAMMUNITIONTYPE, float> Ammunition;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USHealthComponent* HealthComp;
+
+	UFUNCTION()
+	void OnHealthChanged(USHealthComponent* HealthComponent, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	bool bDied;
 
 public:	
 	// Called every frame
