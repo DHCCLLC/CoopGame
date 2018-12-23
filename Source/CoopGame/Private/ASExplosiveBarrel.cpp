@@ -6,6 +6,7 @@
 #include "PhysicsEngine/RadialForceComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
+#include "GameFramework/DamageType.h"
 
 
 // Sets default values
@@ -61,6 +62,9 @@ void AASExplosiveBarrel::OnHealthChanged(USHealthComponent * OwningHealthComp, f
 		MeshComp->SetMaterial(0, ExplodedMaterial);
 
 		RadialForceComp->FireImpulse();
+		
+		const TArray < AActor * >  IgnoreActors;
+		UGameplayStatics::ApplyRadialDamage(GetWorld(), 100.0f, GetActorLocation(), 500.0f, UDamageType::StaticClass(), IgnoreActors, this, GetInstigatorController(), false, ECollisionChannel::ECC_Visibility);
 	}
 }
 
