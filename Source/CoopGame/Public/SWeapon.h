@@ -10,6 +10,8 @@
 class USkeletalMeshComponent;
 class UDamageType;
 class UParticleSystem;
+class UCameraShake;
+class USInventoryComponent;
 
 UCLASS()
 class COOPGAME_API ASWeapon : public AActor
@@ -66,15 +68,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	float RateOfFire;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float AmmunitionCost; //number of ammunition to make a single shot. Ex. Double barrel uses two shells for one shot.
+
 	float TimeBetweenShots;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	EWEAPONAMMUNITIONTYPE AmmunitionType;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	USInventoryComponent* InventoryCompRef; //what if character throws weapon down?
 public:		
 	
 	void StartFire();
 
 	void StopFire();
+
+	void SetInventoryRef(USInventoryComponent* InventoryComp) { InventoryCompRef = InventoryComp; }
 
 	EWEAPONAMMUNITIONTYPE GetAmmunitionType() { return AmmunitionType; }
 };

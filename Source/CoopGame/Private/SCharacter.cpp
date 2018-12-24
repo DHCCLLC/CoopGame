@@ -13,6 +13,8 @@
 #include "Components/CapsuleComponent.h"
 #include "CoopGame.h"
 #include "Components/SHealthComponent.h"
+#include "SInventoryComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 
 // Sets default values
@@ -33,6 +35,7 @@ ASCharacter::ASCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
+	InventoryComp = CreateDefaultSubobject<USInventoryComponent>(TEXT("InventoryComp"));
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));	
 	CameraComp->SetupAttachment(SpringArmComp);
@@ -42,8 +45,8 @@ ASCharacter::ASCharacter()
 
 	WeaponAttachSocketName = "WeaponSocket";	
 
-	Ammunition.Add(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 30.0f);
-	Ammunition.Add(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f);
+	InventoryComp->HandleAmmunitionChange(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 60.0f);
+	InventoryComp->HandleAmmunitionChange(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f);
 }
 
 // Called when the game starts or when spawned
@@ -62,6 +65,10 @@ void ASCharacter::BeginPlay()
 	{
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+		CurrentWeapon->SetInventoryRef(InventoryComp);
+
+		//simulating equipping weapon
+		InventoryComp->EquipWeapon(CurrentWeapon->GetAmmunitionType());
 	}
 
 	HealthComp->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
@@ -159,21 +166,6 @@ void ASCharacter::StopFire()
 	{
 		CurrentWeapon->StopFire();
 	}
-}
-
-void ASCharacter::ConsumeAmmunition(float AmmunitionConsumed)
-{
-	Ammunition[CurrentWeapon->GetAmmunitionType()] -= AmmunitionConsumed;
-}
-
-float ASCharacter::GetRemainingAmmunition()
-{
-	return Ammunition[CurrentWeapon->GetAmmunitionType()];
-}
-
-bool ASCharacter::HasAmmunition()
-{ 
-	return (Ammunition[CurrentWeapon->GetAmmunitionType()] > 0); 
 }
 
 void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComponent, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)

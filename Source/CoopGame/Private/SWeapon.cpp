@@ -10,6 +10,7 @@
 #include "CoopGame.h"
 #include "TimerManager.h"
 #include "SCharacter.h"
+#include "SInventoryComponent.h"
 
 static int32 DebugWeaponDrawing = 0;
 FAutoConsoleVariableRef CVARDebugWeaponDrawing(
@@ -29,6 +30,8 @@ ASWeapon::ASWeapon()
 
 	BaseDamage = 20.0f;
 	RateOfFire = 600; //instructor said number of bullets per minute	
+
+	AmmunitionCost = 7.0f;
 }
 
 void ASWeapon::BeginPlay()
@@ -40,13 +43,13 @@ void ASWeapon::BeginPlay()
 
 void ASWeapon::Fire()
 {
-	AActor* MyOwner = GetOwner();
-
-	if (!(Cast<ASCharacter>(MyOwner))->HasAmmunition())
+	if (!InventoryCompRef->HasSufficientAmmunition(AmmunitionType, AmmunitionCost))
 	{
 		StopFire();
 		return;
 	}
+
+	AActor* MyOwner = GetOwner();
 
 	if (MyOwner)
 	{
@@ -113,7 +116,7 @@ void ASWeapon::Fire()
 
 		LastFireTime = GetWorld()->TimeSeconds;
 
-		(Cast<ASCharacter>(MyOwner))->ConsumeAmmunition(1.0f);
+		InventoryCompRef->HandleAmmunitionChange(AmmunitionType, -AmmunitionCost, true);
 	}
 }
 

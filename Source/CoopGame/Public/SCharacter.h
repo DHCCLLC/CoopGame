@@ -11,6 +11,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class ASWeapon;
 class USHealthComponent;
+class USInventoryComponent;
 
 UCLASS()
 class COOPGAME_API ASCharacter : public ACharacter
@@ -61,9 +62,6 @@ protected:
 
 	void StartFire();
 	void StopFire();	
-
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	TMap<EWEAPONAMMUNITIONTYPE, float> Ammunition;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USHealthComponent* HealthComp;
@@ -74,6 +72,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Player")
 	bool bDied;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
+	USInventoryComponent* InventoryComp;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -82,12 +83,4 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual FVector GetPawnViewLocation() const override;
-	
-	//UFUNCTION(BlueprintCallable, Category = "Player")
-	void ConsumeAmmunition(float AmmunitionConsumed);
-
-	UFUNCTION(BlueprintCallable, Category = "Player")
-	float GetRemainingAmmunition();
-
-	bool HasAmmunition();
 };
