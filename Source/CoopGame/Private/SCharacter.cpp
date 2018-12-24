@@ -45,8 +45,8 @@ ASCharacter::ASCharacter()
 
 	WeaponAttachSocketName = "WeaponSocket";	
 
-	InventoryComp->HandleAmmunitionChange(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 60.0f);
-	InventoryComp->HandleAmmunitionChange(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f);
+	InventoryComp->AddAmmunition(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 60.0f, false);
+	InventoryComp->AddAmmunition(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f, false);
 }
 
 // Called when the game starts or when spawned
@@ -117,6 +117,11 @@ FVector ASCharacter::GetPawnViewLocation() const
 	}
 
 	return Super::GetPawnViewLocation();
+}
+
+EWEAPONAMMUNITIONTYPE ASCharacter::GetWeaponAmmunitionType()
+{
+	return CurrentWeapon->GetAmmunitionType();
 }
 
 void ASCharacter::MoveForward(float value)

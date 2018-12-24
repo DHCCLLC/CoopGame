@@ -7,6 +7,8 @@
 #include "Components/ActorComponent.h"
 #include "SInventoryComponent.generated.h"
 
+class USAmmunitionComponent;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAmmunitionChangedSignature, EWEAPONAMMUNITIONTYPE, AmmunitionType, float, value);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -23,20 +25,29 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
-	float RifleAmmunition;
+	USAmmunitionComponent* PistolAmmoComp;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
-	float GrenadeAmmunition;
+	USAmmunitionComponent* RifleAmmoComp;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	USAmmunitionComponent* GrenadeAmmoComp;
 
 public:
 
-	void HandleAmmunitionChange(EWEAPONAMMUNITIONTYPE AmmunitionType, float value, bool bActiveWeapon = false);
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	void ConsumeAmmunition(EWEAPONAMMUNITIONTYPE AmmunitionType, float AmmunitionConsumed);
 
-	bool HasSufficientAmmunition(EWEAPONAMMUNITIONTYPE AmmunitionType, float AmmunitionCost);
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	bool AddAmmunition(EWEAPONAMMUNITIONTYPE AmmunitionType, float AmmunitionToAdd, bool bActiveWeapon); //only adds if inventory is not full
+
+	void HandleAmmunitionChange(EWEAPONAMMUNITIONTYPE AmmunitionType);
+
+	bool HasSufficientAmmunition(EWEAPONAMMUNITIONTYPE AmmunitionType, float RequestedAmmunition);
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnAmmunitionChangedSignature OnAmmunitionChanged;
 
-	//Placeholder until weapon pickup and eapon swapping is implemented
-	void EquipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType) { HandleAmmunitionChange(AmmunitionType, 0, true); }
+	//Placeholder until weapon pickup and weapon swapping is implemented
+	void EquipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType) { ConsumeAmmunition(AmmunitionType, 0); }
 };

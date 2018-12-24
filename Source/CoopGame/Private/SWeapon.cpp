@@ -31,7 +31,7 @@ ASWeapon::ASWeapon()
 	BaseDamage = 20.0f;
 	RateOfFire = 600; //instructor said number of bullets per minute	
 
-	AmmunitionCost = 7.0f;
+	AmmunitionCost = 1.0f;
 }
 
 void ASWeapon::BeginPlay()
@@ -116,7 +116,7 @@ void ASWeapon::Fire()
 
 		LastFireTime = GetWorld()->TimeSeconds;
 
-		InventoryCompRef->HandleAmmunitionChange(AmmunitionType, -AmmunitionCost, true);
+		InventoryCompRef->ConsumeAmmunition(AmmunitionType, AmmunitionCost);
 	}
 }
 

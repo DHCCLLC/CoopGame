@@ -72,7 +72,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Player")
 	bool bDied;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
 	USInventoryComponent* InventoryComp;
 
 public:	
@@ -83,4 +83,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual FVector GetPawnViewLocation() const override;
+
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	EWEAPONAMMUNITIONTYPE GetWeaponAmmunitionType();
 };
