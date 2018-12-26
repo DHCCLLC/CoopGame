@@ -12,6 +12,21 @@ class UDamageType;
 class UParticleSystem;
 class UCameraShake;
 class USInventoryComponent;
+class USAmmunitionComponent;
+
+USTRUCT()
+struct FHitScanTrace
+{
+	GENERATED_BODY()
+public:
+	
+	UPROPERTY()
+	TEnumAsByte<EPhysicalSurface> SurfaceType;
+
+	UPROPERTY()
+	FVector_NetQuantize TraceTo;
+};
+
 
 UCLASS()
 class COOPGAME_API ASWeapon : public AActor
@@ -52,6 +67,8 @@ protected:
 
 	void PlayFireEffects(FVector TracerEnd);
 
+	void PlayImpactEffects(EPhysicalSurface SurfaceType, FVector ImpactPoint);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<UCameraShake> FireCamShake;
 
@@ -59,6 +76,9 @@ protected:
 	float BaseDamage;
 
 	virtual void Fire();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerFire();
 
 	FTimerHandle TimerHandle_TimeBetweenShots;
 
@@ -74,17 +94,25 @@ protected:
 	float TimeBetweenShots;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	EWEAPONAMMUNITIONTYPE AmmunitionType;
+	USAmmunitionComponent* MagazineComp;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	USInventoryComponent* InventoryCompRef; //what if character throws weapon down?
+	UPROPERTY(ReplicatedUsing=OnRep_HitScanTrace)
+	FHitScanTrace HitScanTrace;
+
+	UFUNCTION()
+	void OnRep_HitScanTrace();
+
+	//UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	//USInventoryComponent* InventoryCompRef; //what if character throws weapon down?
 public:		
 	
 	void StartFire();
 
 	void StopFire();
 
-	void SetInventoryRef(USInventoryComponent* InventoryComp) { InventoryCompRef = InventoryComp; }
+	//void SetInventoryRef(USInventoryComponent* InventoryComp) { InventoryCompRef = InventoryComp; }
 
-	EWEAPONAMMUNITIONTYPE GetAmmunitionType() { return AmmunitionType; }
+	EWEAPONAMMUNITIONTYPE GetAmmunitionType();
+
+	void Reload();
 };

@@ -15,6 +15,7 @@
 #include "Components/SHealthComponent.h"
 #include "SInventoryComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "UnrealNetwork.h"
 
 
 // Sets default values
@@ -45,8 +46,8 @@ ASCharacter::ASCharacter()
 
 	WeaponAttachSocketName = "WeaponSocket";	
 
-	InventoryComp->AddAmmunition(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 60.0f, false);
-	InventoryComp->AddAmmunition(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f, false);
+	//InventoryComp->AddAmmunition(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 60.0f, false);
+	//InventoryComp->AddAmmunition(EWEAPONAMMUNITIONTYPE::WAT_Grenade, 45.0f, false);
 }
 
 // Called when the game starts or when spawned
@@ -55,23 +56,25 @@ void ASCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	DefaultFOV = CameraComp->FieldOfView;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-		CurrentWeapon->SetInventoryRef(InventoryComp);
-
-		//simulating equipping weapon
-		InventoryComp->EquipWeapon(CurrentWeapon->GetAmmunitionType());
-	}
-
 	HealthComp->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
+
+	if (Role == ROLE_Authority)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->SetOwner(this);
+			CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+			//CurrentWeapon->SetInventoryRef(InventoryComp);
+
+			//simulating equipping weapon
+			//InventoryComp->EquipWeapon(CurrentWeapon->GetAmmunitionType());
+		}
+	}	
 }
 
 // Called every frame
@@ -100,6 +103,9 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Crouch", EInputEvent::IE_Pressed, this, &ASCharacter::BeginCrouch);
 	PlayerInputComponent->BindAction("Crouch", EInputEvent::IE_Released, this, &ASCharacter::EndCrouch);
 
+	PlayerInputComponent->BindAction("Prone", EInputEvent::IE_Pressed, this, &ASCharacter::BeginProne);
+	PlayerInputComponent->BindAction("Prone", EInputEvent::IE_Released, this, &ASCharacter::EndProne);
+
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ACharacter::Jump);
 
 	PlayerInputComponent->BindAction("Zoom", EInputEvent::IE_Pressed, this, &ASCharacter::BeginZoom);
@@ -107,6 +113,8 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Pressed, this, &ASCharacter::StartFire);
 	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Released, this, &ASCharacter::StopFire);
+
+	PlayerInputComponent->BindAction("Reload", EInputEvent::IE_Pressed, this, &ASCharacter::Reload);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const
@@ -144,6 +152,16 @@ void ASCharacter::EndCrouch()
 	UnCrouch();
 }
 
+void ASCharacter::BeginProne()
+{
+	bWantsToProne = true;
+}
+
+void ASCharacter::EndProne()
+{
+	bWantsToProne = false;
+}
+
 void ASCharacter::BeginZoom()
 {
 	bWantsToZoom = true;
@@ -156,9 +174,6 @@ void ASCharacter::EndZoom()
 
 void ASCharacter::StartFire()
 {
-	//if (Ammunition[CurrentWeapon->GetAmmunitionType()] <= 0)
-	//	return;
-
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->StartFire();
@@ -170,6 +185,14 @@ void ASCharacter::StopFire()
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->StopFire();
+	}
+}
+
+void ASCharacter::Reload()
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->Reload();
 	}
 }
 
@@ -187,4 +210,12 @@ void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComponent, floa
 
 		SetLifeSpan(10.0f);
 	}
+}
+
+void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASCharacter, CurrentWeapon);
+	DOREPLIFETIME(ASCharacter, bDied);
 }

@@ -49,5 +49,8 @@ public:
 	FOnAmmunitionChangedSignature OnAmmunitionChanged;
 
 	//Placeholder until weapon pickup and weapon swapping is implemented
-	void EquipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType) { ConsumeAmmunition(AmmunitionType, 0); }
+	void EquipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType);
+
+	//Placeholder until weapon pickup and weapon swapping is implemented
+	void UnequipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType);
 };

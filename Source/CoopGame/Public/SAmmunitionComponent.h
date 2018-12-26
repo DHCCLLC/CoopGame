@@ -7,7 +7,6 @@
 #include "Components/ActorComponent.h"
 #include "SAmmunitionComponent.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class COOPGAME_API USAmmunitionComponent : public UActorComponent
 {
@@ -16,9 +15,7 @@ class COOPGAME_API USAmmunitionComponent : public UActorComponent
 protected:
 
 	float MaxAmmunition;
-
 	float CurrentAmmunition;
-
 	EWEAPONAMMUNITIONTYPE EAmmunitionType;
 
 public:
@@ -32,5 +29,7 @@ public:
 
 	bool Add(float AmmunitionToAdd); //returns true if we are able to add
 
-	bool HasSufficientAmmunition(float RequestedAmmunition) { return ((CurrentAmmunition - RequestedAmmunition) >= 0); }	
+	bool HasSufficientAmmunition(float RequestedAmmunition) { return ((CurrentAmmunition - RequestedAmmunition) >= 0); }
+
+	EWEAPONAMMUNITIONTYPE GetAmmunitionType() { return EAmmunitionType; }
 };

@@ -11,19 +11,17 @@
 #include "TimerManager.h"
 #include "SCharacter.h"
 #include "SInventoryComponent.h"
-
-static int32 DebugWeaponDrawing = 0;
-FAutoConsoleVariableRef CVARDebugWeaponDrawing(
-	TEXT("COOP.DebugWeapons"),
-	DebugWeaponDrawing,
-	TEXT("Draw Debug Lines for Weapons"),
-	ECVF_Cheat);
+#include "SAmmunitionComponent.h"
+#include "UnrealNetwork.h"
 
 // Sets default values
 ASWeapon::ASWeapon()
 {
 	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
+
+	MagazineComp = CreateDefaultSubobject<USAmmunitionComponent>(TEXT("MagazineComp"));
+	MagazineComp->Init(EWEAPONAMMUNITIONTYPE::WAT_Rifle, 20.0f, 20.0f);
 
 	MuzzleSocketName = "MuzzleSocket";
 	TracerTargetName = "Target";
@@ -32,6 +30,11 @@ ASWeapon::ASWeapon()
 	RateOfFire = 600; //instructor said number of bullets per minute	
 
 	AmmunitionCost = 1.0f;
+
+	SetReplicates(true);
+
+	NetUpdateFrequency = 66.0f;
+	MinNetUpdateFrequency = 33.0f;
 }
 
 void ASWeapon::BeginPlay()
@@ -43,10 +46,17 @@ void ASWeapon::BeginPlay()
 
 void ASWeapon::Fire()
 {
-	if (!InventoryCompRef->HasSufficientAmmunition(AmmunitionType, AmmunitionCost))
+	///*if (!InventoryCompRef->HasSufficientAmmunition(AmmunitionType, AmmunitionCost))*/
+	//if (!InventoryCompRef->HasSufficientAmmunition(MagazineComp->GetAmmunitionType(), AmmunitionCost))
+	////if (!MagazineComp->HasSufficientAmmunition(AmmunitionCost))
+	//{
+	//	StopFire();
+	//	return;
+	//}
+
+	if (Role < ROLE_Authority)
 	{
-		StopFire();
-		return;
+		ServerFire();
 	}
 
 	AActor* MyOwner = GetOwner();
@@ -70,6 +80,8 @@ void ASWeapon::Fire()
 
 		FVector TracerEndPoint = TraceEnd;
 
+		EPhysicalSurface SurfaceType = EPhysicalSurface::SurfaceType_Default;
+
 		FHitResult Hit;
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, QueryParams))
 		{
@@ -77,7 +89,7 @@ void ASWeapon::Fire()
 
 			TracerEndPoint = Hit.ImpactPoint;				
 			
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 
 			float ActualDamage = BaseDamage;
 
@@ -88,36 +100,34 @@ void ASWeapon::Fire()
 
 			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
-			UParticleSystem* SelectedEffect = nullptr;
-
-			switch (SurfaceType)
-			{
-			case SURFACE_FLESHDEFAULT:
-			case SURFACE_FLESHVULNERABLE:
-				SelectedEffect = FleshImpactEffect;
-				break;
-			default:
-				SelectedEffect = DefaultImpactEffect;
-				break;
-			}
-
-			if (SelectedEffect)
-			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
-			}
+			PlayImpactEffects(SurfaceType, Hit.ImpactPoint);			
 		}
-
-		if (DebugWeaponDrawing > 0)
-		{
-			DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.0f, 0, 1.0f);
-		}		
 
 		PlayFireEffects(TracerEndPoint);
 
+		if (Role == ROLE_Authority)
+		{
+			//only for cosmetic reasons
+			HitScanTrace.TraceTo = TracerEndPoint;
+			HitScanTrace.SurfaceType = SurfaceType;
+		}
+
 		LastFireTime = GetWorld()->TimeSeconds;
 
-		InventoryCompRef->ConsumeAmmunition(AmmunitionType, AmmunitionCost);
+		////InventoryCompRef->ConsumeAmmunition(AmmunitionType, AmmunitionCost);
+		//InventoryCompRef->ConsumeAmmunition(MagazineComp->GetAmmunitionType(), AmmunitionCost);
+		////MagazineComp->Consume(AmmunitionCost);
 	}
+}
+
+void ASWeapon::ServerFire_Implementation()
+{
+	Fire();
+}
+
+bool ASWeapon::ServerFire_Validate()
+{
+	return true;
 }
 
 void ASWeapon::PlayFireEffects(FVector TracerEnd)
@@ -150,6 +160,39 @@ void ASWeapon::PlayFireEffects(FVector TracerEnd)
 	}
 }
 
+void ASWeapon::PlayImpactEffects(EPhysicalSurface SurfaceType, FVector ImpactPoint)
+{
+	UParticleSystem* SelectedEffect = nullptr;
+
+	switch (SurfaceType)
+	{
+	case SURFACE_FLESHDEFAULT:
+	case SURFACE_FLESHVULNERABLE:
+		SelectedEffect = FleshImpactEffect;
+		break;
+	default:
+		SelectedEffect = DefaultImpactEffect;
+		break;
+	}
+
+	if (SelectedEffect)
+	{
+		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+
+		FVector ShotDirection = ImpactPoint - MuzzleLocation;
+		ShotDirection.Normalize();
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, ImpactPoint, ShotDirection.Rotation());
+	}
+}
+
+void ASWeapon::OnRep_HitScanTrace()
+{
+	PlayFireEffects(HitScanTrace.TraceTo);
+
+	PlayImpactEffects(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
+}
+
 void ASWeapon::StartFire()
 {
 	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
@@ -160,4 +203,21 @@ void ASWeapon::StartFire()
 void ASWeapon::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
+}
+
+EWEAPONAMMUNITIONTYPE ASWeapon::GetAmmunitionType()
+{
+	return MagazineComp->GetAmmunitionType();
+}
+
+void ASWeapon::Reload()
+{
+	UE_LOG(LogTemp, Log, TEXT("We tried to reload!"));
+}
+
+void ASWeapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ASWeapon, HitScanTrace, COND_SkipOwner);
 }

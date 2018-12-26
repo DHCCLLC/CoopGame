@@ -110,3 +110,13 @@ bool USInventoryComponent::HasSufficientAmmunition(EWEAPONAMMUNITIONTYPE Ammunit
 		break;
 	}
 }
+
+void USInventoryComponent::EquipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType)
+{
+	ConsumeAmmunition(AmmunitionType, 0);
+}
+
+void USInventoryComponent::UnequipWeapon(EWEAPONAMMUNITIONTYPE AmmunitionType)
+{
+	ConsumeAmmunition(AmmunitionType, 0);
+}
