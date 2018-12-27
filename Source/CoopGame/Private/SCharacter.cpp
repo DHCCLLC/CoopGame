@@ -198,6 +198,8 @@ void ASCharacter::Reload()
 
 void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComponent, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
+	UE_LOG(LogTemp, Log, TEXT("Player Health: %f"), Health);
+
 	if (Health <= 0.0f && !bDied)
 	{
 		//Die!
