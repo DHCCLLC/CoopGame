@@ -3,6 +3,7 @@
 #include "Components/SHealthComponent.h"
 #include "Gameframework/Actor.h"
 #include "UnrealNetwork.h"
+#include "GameFramework/DamageType.h"
 
 
 // Sets default values for this component's properties
@@ -44,9 +45,10 @@ void USHealthComponent::HandleTakeAnyDamage(AActor * DamagedActor, float Damage,
 	OnHealthChanged.Broadcast(this, Health, Damage, DamageType, InstigatedBy, DamageCauser);
 }
 
-//void USHealthComponent::OnRep_Health()
-//{
-//}
+void USHealthComponent::OnRep_Health()
+{
+	OnHealthChanged.Broadcast(this, Health, 0, GetDefault<UDamageType>() , nullptr, nullptr);
+}
 
 void USHealthComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
 {
