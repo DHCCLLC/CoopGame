@@ -16,6 +16,7 @@
 #include "Engine/EngineTypes.h"
 #include "TimerManager.h"
 #include "Sound/SoundCue.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 
 // Sets default values
@@ -48,6 +49,12 @@ ASTrackerBot::ASTrackerBot()
 
 	bStartedSelfDestruction = false;
 	SelfDamageInterval = 0.25f;
+
+	CheckPowerLevelInterval = 1.0f;
+
+	BotDetectionRadius = 500.0f;
+
+	MaxPowerLevel = 4;
 }
 
 // Called when the game starts or when spawned
@@ -60,7 +67,9 @@ void ASTrackerBot::BeginPlay()
 	if (Role == ROLE_Authority)
 	{
 		NextPathPoint = GetNextPathPoint();
-	}	
+
+		GetWorldTimerManager().SetTimer(TimerHandle_CheckPowerLevel, this, &ASTrackerBot::CheckPowerLevel, CheckPowerLevelInterval, true, 0.0f);
+	}		
 }
 
 FVector ASTrackerBot::GetNextPathPoint()
@@ -115,10 +124,44 @@ void ASTrackerBot::SelfDestruct()
 
 		TArray<AActor*>  IgnoreActors;
 		IgnoreActors.Add(this);
-		UGameplayStatics::ApplyRadialDamage(GetWorld(), ExplosionDamage, GetActorLocation(), ExplosionRadius, UDamageType::StaticClass(), IgnoreActors, this, GetInstigatorController(), true, ECollisionChannel::ECC_Visibility);
+		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage + (ExplosionDamage * PowerLevel), GetActorLocation(), ExplosionRadius, nullptr, IgnoreActors, this, GetInstigatorController(), true);// , ECollisionChannel::ECC_Visibility);
 
 		SetLifeSpan(2.0f);
 	}	
+}
+
+void ASTrackerBot::CheckPowerLevel()
+{
+	TArray < TEnumAsByte < EObjectTypeQuery> > ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+
+	TArray <AActor*> Filter;
+	Filter.Add(this);
+
+	TArray <AActor*> OutActors;
+
+	UKismetSystemLibrary::SphereOverlapActors(this, GetActorLocation(), BotDetectionRadius, ObjectTypes, ASTrackerBot::StaticClass(), Filter, OutActors);
+
+	int32 BotsInRange = OutActors.Num();
+
+	PowerLevel = (float)FMath::Clamp(BotsInRange, 0, MaxPowerLevel);
+
+	float Alpha = PowerLevel / (float)MaxPowerLevel;
+	//UE_LOG(LogTemp, Log, TEXT("Bot alpha: %f"), Alpha);
+
+	if (MatInst == nullptr)
+	{
+		MatInst = MeshComp->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
+	}
+
+	if (MatInst)
+	{
+		MatInst->SetScalarParameterValue("PowerLevelAlpha", Alpha);
+	}
+
+	//UE_LOG(LogTemp, Log, TEXT("Bots in range: %i"), Actors);
+	//
+	//UE_LOG(LogTemp, Log, TEXT("Checking power level!"));
 }
 
 // Called every frame

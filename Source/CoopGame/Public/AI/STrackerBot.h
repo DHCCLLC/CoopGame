@@ -78,6 +78,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	USoundCue* ExplodeSound;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float PowerLevel;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	int32 MaxPowerLevel;
+
+	FTimerHandle TimerHandle_CheckPowerLevel;
+
+	void CheckPowerLevel();
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float CheckPowerLevelInterval;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float BotDetectionRadius;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
