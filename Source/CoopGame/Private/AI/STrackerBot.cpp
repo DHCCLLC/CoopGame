@@ -15,6 +15,7 @@
 #include "SCharacter.h"
 #include "Engine/EngineTypes.h"
 #include "TimerManager.h"
+#include "Sound/SoundCue.h"
 
 
 // Sets default values
@@ -46,6 +47,7 @@ ASTrackerBot::ASTrackerBot()
 	ExplosionDamage = 40.0f;
 
 	bStartedSelfDestruction = false;
+	SelfDamageInterval = 0.25f;
 }
 
 // Called when the game starts or when spawned
@@ -55,7 +57,10 @@ void ASTrackerBot::BeginPlay()
 
 	HealthComp->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
 
-	NextPathPoint = GetNextPathPoint();	
+	if (Role == ROLE_Authority)
+	{
+		NextPathPoint = GetNextPathPoint();
+	}	
 }
 
 FVector ASTrackerBot::GetNextPathPoint()
@@ -99,13 +104,21 @@ void ASTrackerBot::SelfDestruct()
 
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
 
-	Destroy();
+	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
 
-	//RadialForceComp->FireImpulse();
+	MeshComp->SetVisibility(false, true);
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	TArray<AActor*>  IgnoreActors;
-	IgnoreActors.Add(this);
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), ExplosionDamage, GetActorLocation(), ExplosionRadius, UDamageType::StaticClass(), IgnoreActors, this, GetInstigatorController(), true, ECollisionChannel::ECC_Visibility);
+	if (Role == ROLE_Authority)
+	{
+		//RadialForceComp->FireImpulse();
+
+		TArray<AActor*>  IgnoreActors;
+		IgnoreActors.Add(this);
+		UGameplayStatics::ApplyRadialDamage(GetWorld(), ExplosionDamage, GetActorLocation(), ExplosionRadius, UDamageType::StaticClass(), IgnoreActors, this, GetInstigatorController(), true, ECollisionChannel::ECC_Visibility);
+
+		SetLifeSpan(2.0f);
+	}	
 }
 
 // Called every frame
@@ -113,38 +126,43 @@ void ASTrackerBot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
-
-	if (DistanceToTarget <= RequiredDistanceToTarget)
+	if (Role == ROLE_Authority && !bExploded)
 	{
-		NextPathPoint = GetNextPathPoint();
+		float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
+
+		if (DistanceToTarget <= RequiredDistanceToTarget)
+		{
+			NextPathPoint = GetNextPathPoint();
+		}
+		else
+		{
+			FVector ForceDirection = NextPathPoint - GetActorLocation();
+			ForceDirection.Normalize();
+
+			ForceDirection *= MovementForce;
+
+			MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+
+			DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Yellow, false, 0.0f, 0, 1.0f);
+		}
+
+		DrawDebugSphere(GetWorld(), NextPathPoint, 20, 12, FColor::Yellow, false, 0.0f, 2.0f);
 	}
-	else
-	{
-		FVector ForceDirection = NextPathPoint - GetActorLocation();
-		ForceDirection.Normalize();
-
-		ForceDirection *= MovementForce;
-
-		MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-
-		DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Yellow, false, 0.0f, 0, 1.0f);
-	}
-
-	DrawDebugSphere(GetWorld(), NextPathPoint, 20, 12, FColor::Yellow, false, 0.0f, 2.0f);
 }
 
 void ASTrackerBot::NotifyActorBeginOverlap(AActor * OtherActor)
 {
-	if (!bStartedSelfDestruction)
+	if (!bStartedSelfDestruction && !bExploded)
 	{
 		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
 
 		if (PlayerPawn)
 		{
-			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, 0.5f, true, 0.0f);
+			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
 
 			bStartedSelfDestruction = true;
+
+			UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent, NAME_None, GetActorLocation(), EAttachLocation::KeepRelativeOffset);
 		}
 	}	
 }
